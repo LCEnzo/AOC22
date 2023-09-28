@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use itertools::{Itertools, enumerate};
+use itertools::Itertools;
 
 #[derive(Debug, PartialEq)]
 struct Move {
@@ -63,18 +63,28 @@ fn main() {
             });
     }
     
-    for (count, mv) in enumerate(moves) {
-        // let (c, o, d) = (mv.count, mv.origin, mv.destination);
-        // let ind  = towers[mv.origin].len() - mv.count;
-        // println!("{count:4}| {c:2} {o:2} {d:2}, {ind}");
+    let first_answer = apply_moves_to_towers(&towers, &moves, true);
+    let second_answer = apply_moves_to_towers(&towers, &moves, false);
+
+    let first_output = first_answer.iter().map(|vec| vec.into_iter().rev().next().unwrap_or(&' ')).join("");
+    let second_output = second_answer.iter().map(|vec| vec.into_iter().rev().next().unwrap_or(&' ')).join("");
+
+    println!("{first_output}");
+    println!("{second_output}");
+}
+
+fn apply_moves_to_towers(towers: &Vec<Vec<char>>, moves: &Vec<Move>, reverse_appending: bool) -> Vec<Vec<char>> {
+    let mut towers = towers.to_vec();
+
+    for mv in moves {
         let top_of_the_tower_range = (towers[mv.origin].len() - mv.count)..towers[mv.origin].len();
         let to_move = towers[mv.origin].drain(top_of_the_tower_range).collect::<Vec<char>>();
-        towers[mv.destination].extend(to_move.iter().rev());
-        // println!("----------------------------");
-    } print!("\n");
+        if reverse_appending {
+            towers[mv.destination].extend(to_move.iter().rev());
+        } else {
+            towers[mv.destination].extend(to_move.iter());
+        }
+    }
 
-    // dbg!(towers);
-
-    let output = towers.iter().map(|vec| vec.into_iter().rev().next().unwrap_or(&' ')).join("");
-    println!("{output}");
+    towers
 }
