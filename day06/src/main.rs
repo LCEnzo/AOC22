@@ -1,64 +1,45 @@
 #[derive(Debug, PartialEq)]
-enum EqualityResult {
-    IndexOfFirstDuplicate(usize),
+enum DuplicateIndex {
+    Index(usize),
     NoDuplicates,
 }
 
-fn check_quartet_for_duplicates(s: &[u8]) -> Result<EqualityResult, ()> {
-    if s.len() != 4 {
-        Err(())
-    } else if s[0] == s[1] || s[0] == s[2] || s[0] == s[3] {
-        Ok(EqualityResult::IndexOfFirstDuplicate(0))
-    } else if s[1] == s[2] || s[1] == s[3] {
-        Ok(EqualityResult::IndexOfFirstDuplicate(1))
-    } else if s[2] == s[3] {
-        Ok(EqualityResult::IndexOfFirstDuplicate(2))
-    } else {
-        Ok(EqualityResult::NoDuplicates)
-    }
-}
-
-fn find_first_nonduplicate_quartet_end_index(data: &[u8]) -> Result<usize, &'static str> {
-    let mut i = 0;
-    while i + 3 < data.len() {
-        i = i + match check_quartet_for_duplicates(&data[i..i + 4]) {
-            Ok(EqualityResult::NoDuplicates) => {
-                return Ok(i + 4);
-            }
-            Ok(EqualityResult::IndexOfFirstDuplicate(ind)) => ind + 1,
-            _ => {
-                println!(
-                    "Error when checking equality of elements, \n\tindices starting at [{}], \n",
-                    i
-                );
-                println!(
-                    "\telements [{}, {}, {}, {}]",
-                    data[i] as char,
-                    data[i + 1] as char,
-                    data[i + 2] as char,
-                    data[i + 3] as char,
-                );
-                1
+fn find_first_duplicate(s: &[u8]) -> DuplicateIndex {
+    for i in 0..s.len() - 1 {
+        for j in i + 1..s.len() {
+            if s[i] == s[j] {
+                return DuplicateIndex::Index(i);
             }
         }
     }
 
-    Err("Reached end of string with no duplicates found")
+    DuplicateIndex::NoDuplicates
+}
+
+fn find_end_of_first_unique_substr(data: &[u8], len: usize) -> Result<usize, &'static str> {
+    let mut i = 0;
+    while i + len - 1 < data.len() {
+        i = i + match find_first_duplicate(&data[i..i + len]) {
+            DuplicateIndex::NoDuplicates => {
+                return Ok(i + len);
+            }
+            DuplicateIndex::Index(ind) => ind + 1,
+        }
+    }
+
+    Err("Reached end of data with no window of non duplicates found")
 }
 
 fn main() {
     let data = include_str!("input.txt").as_bytes();
-    match find_first_nonduplicate_quartet_end_index(data) {
-        Ok(i) => {
-            println!(
-                "[{}, {}, {}, {}]",
-                data[i - 4] as char,
-                data[i - 3] as char,
-                data[i - 2] as char,
-                data[i - 1] as char,
-            );
-            println!("{}", i);
-        }
+
+    match find_end_of_first_unique_substr(data, 4) {
+        Ok(i) => println!("First half: {}", i),
+        Err(s) => println!("Error: {}", s),
+    }
+
+    match find_end_of_first_unique_substr(data, 14) {
+        Ok(i) => println!("Second half: {}", i),
         Err(s) => println!("Error: {}", s),
     }
 }
@@ -67,59 +48,58 @@ fn main() {
 mod tests {
     use super::*;
 
-    // Test given on website
     #[test]
-    fn test1() {
+    fn test21() {
+        let input = "mjqjpqmgbljsphdztnvjfqwrcgsmlb".as_bytes();
+        assert_eq!(find_end_of_first_unique_substr(input, 14), Ok(19));
+    }
+
+    #[test]
+    fn test22() {
         let input = "bvwbjplbgvbhsrlpgdmjqwftvncz".as_bytes();
-        assert_eq!(find_first_nonduplicate_quartet_end_index(input), Ok(5));
+        assert_eq!(find_end_of_first_unique_substr(input, 14), Ok(23));
     }
 
     #[test]
-    fn test2() {
+    fn test23() {
         let input = "nppdvjthqldpwncqszvftbrmjlhg".as_bytes();
-        assert_eq!(find_first_nonduplicate_quartet_end_index(input), Ok(6));
+        assert_eq!(find_end_of_first_unique_substr(input, 14), Ok(23));
     }
 
     #[test]
-    fn test3() {
+    fn test24() {
         let input = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg".as_bytes();
-        assert_eq!(find_first_nonduplicate_quartet_end_index(input), Ok(10));
+        assert_eq!(find_end_of_first_unique_substr(input, 14), Ok(29));
     }
 
     #[test]
-    fn test4() {
+    fn test25() {
         let input = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw".as_bytes();
-        assert_eq!(find_first_nonduplicate_quartet_end_index(input), Ok(11));
+        assert_eq!(find_end_of_first_unique_substr(input, 14), Ok(26));
     }
 
     // Not really needed, written for practice
     #[test]
-    fn test_check_quartet_with_duplicates() {
+    fn test_check_eq_with_duplicates() {
         let input = "mjqj".as_bytes();
-        assert_eq!(
-            check_quartet_for_duplicates(input),
-            Ok(EqualityResult::IndexOfFirstDuplicate(1))
-        );
+        assert_eq!(find_first_duplicate(input), DuplicateIndex::Index(1));
     }
 
     #[test]
-    fn test_check_quartet_with_no_duplicates() {
+    fn test_check_eq_with_no_duplicates() {
         let input = "mjqw".as_bytes();
-        assert_eq!(
-            check_quartet_for_duplicates(input),
-            Ok(EqualityResult::NoDuplicates)
-        );
+        assert_eq!(find_first_duplicate(input), DuplicateIndex::NoDuplicates);
     }
 
     #[test]
-    fn test_check_quartet_with_too_small_input() {
-        let input = "mjq".as_bytes();
-        assert_eq!(check_quartet_for_duplicates(input), Err(()));
+    fn test_check_eq_with_small_input() {
+        let input = "m".as_bytes();
+        assert_eq!(find_first_duplicate(input), DuplicateIndex::NoDuplicates);
     }
 
     #[test]
-    fn test_check_quartet_with_too_large_input() {
-        let input = "mjqwt".as_bytes();
-        assert_eq!(check_quartet_for_duplicates(input), Err(()));
+    fn test_check_eq_with_large_input() {
+        let input = "mjqwtxyzp".as_bytes();
+        assert_eq!(find_first_duplicate(input), DuplicateIndex::NoDuplicates);
     }
 }
