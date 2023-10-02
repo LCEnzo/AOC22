@@ -1,4 +1,4 @@
-SOlving AOC22 to learn Rust.
+Solving AOC22 to learn Rust.
 
 https://adventofcode.com/2022
 
