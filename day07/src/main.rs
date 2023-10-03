@@ -103,7 +103,7 @@ fn find_sum_of_small_folder_sizes(folders: &[Folder], index: usize, max_size: u1
 }
 
 fn find_min_folder_to_delete(folders: &[Folder]) -> Option<u128> {
-    let target = 30000000 - (70000000 as u128 - folders[0].total_size);
+    let target = 30_000_000 - (70_000_000 as u128 - folders[0].total_size);
     folders.iter()
         .map(|folder| folder.total_size)
         .filter(|size| size >= &target)
@@ -113,7 +113,7 @@ fn find_min_folder_to_delete(folders: &[Folder]) -> Option<u128> {
 fn main() {
     let input_txt = include_str!("input.txt");
     let folders = parse_terminal_output(input_txt).expect("Could not parse input text");
-    println!("{}", find_sum_of_small_folder_sizes(&folders, 0, 100000));
+    println!("{}", find_sum_of_small_folder_sizes(&folders, 0, 100_000));
     println!("{}", find_min_folder_to_delete(&folders).expect("Could not find a folder of size at least 30000000"));
 }
 
@@ -132,8 +132,8 @@ mod tests {
 
         assert!(itertools::any(folders.clone(), |folder| folder.name == "e" && folder.files_size == 584 as u128));
         assert!(itertools::any(folders.clone(), |folder| folder.name == "a" && folder.files_size == (94853 - 584) as u128));
-        assert!(itertools::any(folders.clone(), |folder| folder.name == "d" && folder.files_size == 24933642 as u128));
-        assert!(itertools::any(folders.clone(), |folder| folder.name == "/" && folder.files_size == (48381165 - 24933642 - 94853) as u128));
+        assert!(itertools::any(folders.clone(), |folder| folder.name == "d" && folder.files_size == 24_933_642 as u128));
+        assert!(itertools::any(folders.clone(), |folder| folder.name == "/" && folder.files_size == (48_381_165 - 24_933_642 - 94853) as u128));
     }
 
     #[test]
@@ -147,8 +147,8 @@ mod tests {
 
         assert!(itertools::any(folders.clone(), |folder| folder.name == "e" && folder.total_size == 584 as u128));
         assert!(itertools::any(folders.clone(), |folder| folder.name == "a" && folder.total_size == 94853));
-        assert!(itertools::any(folders.clone(), |folder| folder.name == "d" && folder.total_size == 24933642 as u128));
-        assert!(itertools::any(folders.clone(), |folder| folder.name == "/" && folder.total_size == 48381165 as u128));
+        assert!(itertools::any(folders.clone(), |folder| folder.name == "d" && folder.total_size == 24_933_642 as u128));
+        assert!(itertools::any(folders.clone(), |folder| folder.name == "/" && folder.total_size == 48_381_165 as u128));
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
         let folder = parse_terminal_output(input);
         
         if let Some(folders) = folder {
-            assert_eq!(find_sum_of_small_folder_sizes(&folders, 0, 100000), 95437);
+            assert_eq!(find_sum_of_small_folder_sizes(&folders, 0, 100_000), 95437);
         } else {
             assert!(false);
         }
