@@ -22,55 +22,62 @@ impl FromStr for Op {
     }
 }
 
-fn get_signal_strengths(ops: &Vec<Op>) -> Vec<i32> {
-    let mut cycle_count = 0;
+fn calc_register_values_at_cycle(ops: &Vec<Op>) -> Vec<i32> {
+    let mut signals = vec![];
     let mut x = 1;
-    let mut res = vec![];
 
-    for op in ops {
+    for op in ops.iter() {
         match op {
             Op::Noop => {
-                cycle_count += 1;
-
-                if cycle_count == 20 || (cycle_count - 20) % 40 == 0 {
-                    // print!("{:4}|{:5} ", x, x * cycle_count);
-                    res.push(x * cycle_count);
-                    print!("X: {:+3}, CC: {:4}, last: {:+5}\n", x, cycle_count, res.last().unwrap_or(&0));
-                }
+                signals.push(x);
             },
             Op::Addx(num) => {
-                if cycle_count == 19 || (cycle_count - 20) % 40 == 39 {
-                    // print!("{:4}|{:5} ", x, x * (cycle_count + 1));
-
-                    res.push(x * (cycle_count + 1));
-                    print!("X: {:+3}, CC: {:4}, last: {:+5}\n", x, cycle_count + 1, res.last().unwrap_or(&0));
-                }
-
-
-                cycle_count += 2;
-                
-
-                if cycle_count == 20 || (cycle_count - 20) % 40 == 0  {
-                    // print!("{:4}|{:5} ", x, x * cycle_count);
-                    res.push(x * cycle_count);
-                    print!("X: {:+3}, CC: {:4}, last: {:+5}\n", x, cycle_count, res.last().unwrap_or(&0));
-                }
-
+                signals.push(x);
+                signals.push(x);
                 x += num;
             }
         }
     }
 
-    res
+    signals
+}
+
+fn calc_signal_strengths(register_values: &Vec<i32>) -> Vec<i32> {
+    register_values
+        .iter()
+        .enumerate()
+        .filter(|(cycle, _)| (cycle + 21) % 40 == 0)
+        .map(|(cycle, register_val)| register_val * (cycle + 1) as i32)
+        .collect()
+}
+
+fn get_display_pixels(register_values: &Vec<i32>) -> Vec<char> {
+    register_values
+        .iter()
+        .enumerate()
+        .map(|(cycle, val)| ((cycle + 1) % 40, val))
+        .map(|(cycle, reg_val)|
+            if (reg_val+0..=reg_val+2).contains(&(cycle as i32)) {
+                '#'
+            } else {
+                '.'
+            }
+        ).collect()
 }
 
 fn main() {
     let input = include_str!("input.txt");
     let ops: Vec<Op> = input.lines().filter_map(|line| line.parse::<Op>().ok()).collect();
-    let signal_strengths = get_signal_strengths(&ops);
-    let sum: i32 = signal_strengths.iter().sum();
+    let register_values = calc_register_values_at_cycle(&ops);
+    let sum: i32 = calc_signal_strengths(&register_values).iter().sum();
     
     println!("{}", sum);
+
+    let pixels = get_display_pixels(&register_values);
+    for line in pixels.chunks(40) {
+        let line: String = line.iter().collect();
+        println!("{}", line);
+    }
 }
 
 #[cfg(test)]
@@ -81,16 +88,8 @@ mod tests {
     fn test_first_half() {
         let input = include_str!("test_input.txt");
         let ops: Vec<Op> = input.lines().filter_map(|line| line.parse::<Op>().ok()).collect();
-        println!("OPs: ");
-        for op in ops.iter() {
-            match op {
-                Op::Noop => {},
-                Op::Addx(num) => print!("a{:3} ", num)
-            }
-        }
-        println!("");
-        let sum_of_signal_strengths = get_signal_strengths(&ops);
-        
-        assert_eq!(13_140, sum_of_signal_strengths.iter().sum());
+        let register_values = calc_register_values_at_cycle(&ops);
+        let sum = calc_signal_strengths(&register_values).iter().sum();
+        assert_eq!(13_140, sum);
     }
 }
