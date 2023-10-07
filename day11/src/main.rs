@@ -296,6 +296,6 @@ mod tests {
         }
     
         let score = calc_score(&monkeys);
-        println!("{}", score);
+        assert_eq!(2_713_310_158, score);
     }
 }
