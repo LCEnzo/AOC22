@@ -22,7 +22,7 @@ impl FromStr for Op {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 enum Operand {
-    Num(i64),
+    Num(u64),
     Old
 }
 
@@ -32,7 +32,7 @@ impl FromStr for Operand {
     fn from_str(s: &str) -> Result<Self> {
         match s.trim() {
             "old" => Ok(Operand::Old),
-            num => Ok(Operand::Num(num.parse::<i64>()?))
+            num => Ok(Operand::Num(num.parse::<u64>()?))
         }
     }
 }
@@ -64,7 +64,7 @@ impl FromStr for MonkeyOp {
 }
 
 impl MonkeyOp {
-    fn apply_op(&self, old_val: i64) -> i64 {
+    fn apply_op(&self, old_val: u64) -> u64 {
         let op1 = match self.operand1 {
             Operand::Old => old_val,
             Operand::Num(num) => num,
@@ -84,7 +84,7 @@ impl MonkeyOp {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct Test {
-    div: i64,
+    div: u64,
     truthy: usize,
     falsy: usize
 }
@@ -99,14 +99,14 @@ impl FromStr for Test {
             .filter_map(|line|
                 line
                     .split_ascii_whitespace()
-                    .filter_map(|word| word.parse::<u32>().ok())
+                    .filter_map(|word| word.parse::<u64>().ok())
                     .fold(None, |_acc, x| Some(x))
             )
-            .collect::<Vec<u32>>();
+            .collect::<Vec<u64>>();
 
         let mut nums_iter = nums.iter();
 
-        let div = nums_iter.next().ok_or(anyhow!("Could not parse Test"))?.clone() as i64;
+        let div = nums_iter.next().ok_or(anyhow!("Could not parse Test"))?.clone() as u64;
         let truthy = nums_iter.next().ok_or(anyhow!("Could not parse Test"))?.clone() as usize;
         let falsy = nums_iter.next().ok_or(anyhow!("Could not parse Test"))?.clone() as usize;
 
@@ -115,7 +115,7 @@ impl FromStr for Test {
 }
 
 impl Test {
-    fn test(self, val: i64) -> usize {
+    fn test(self, val: u64) -> usize {
         if val % self.div == 0 {
             self.truthy
         } 
@@ -128,10 +128,10 @@ impl Test {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct Monkey {
     index: usize,
-    items: Vec<i64>,
+    items: Vec<u64>,
     operation: MonkeyOp,
     test: Test,
-    inspect_count: i64,
+    inspect_count: u64,
 }
 
 impl FromStr for Monkey {
@@ -156,11 +156,11 @@ impl FromStr for Monkey {
             .captures_iter(lines.next().ok_or(anyhow!("String to parse as Monkey did not include enough lines."))?)
             .filter_map(|captures| 
                 captures.get(0).map(|match_| 
-                    match_.as_str().parse::<i64>()
+                    match_.as_str().parse::<u64>()
                     .ok()
                 )
             )
-            .collect::<Option<Vec<i64>>>()
+            .collect::<Option<Vec<u64>>>()
             .ok_or(anyhow!("Failed to parse items"))?;
 
         let operation = lines
@@ -193,15 +193,27 @@ fn parse_input_to_monkeys(string: &str) -> Vec<Monkey> {
         .collect()
 }
 
-static ROUNDS: u32 = 20;
+fn gcd(a: u64, b: u64) -> u64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
 
-fn simulate_round(monkeys: &mut Vec<Monkey>) {
+fn lcm(a: u64, b: u64) -> u64 {
+    a * b / gcd(a, b)
+}
+
+fn simulate_round(monkeys: &mut Vec<Monkey>, div_worry_by: u64) {
     let len = monkeys.len();
+    let common_factor = monkeys.iter().map(|m| m.test.div).fold(1, |acc, x| lcm(acc, x));
 
     for ind in 0..len {
         // Assumes a monkey can't pass to himself
         for item_ind in 0..monkeys[ind].items.len() {
-            let new_val = monkeys[ind].operation.apply_op(monkeys[ind].items[item_ind]) / 3;
+            let new_val = monkeys[ind].operation.apply_op(monkeys[ind].items[item_ind]) / div_worry_by;
+            let new_val = new_val % common_factor;
             let new_ind = monkeys[ind].test.test(new_val);
 
             assert_ne!(new_ind, monkeys[ind].index);
@@ -213,23 +225,17 @@ fn simulate_round(monkeys: &mut Vec<Monkey>) {
 
         monkeys[ind].items.clear();
     }
-
-    for mon in monkeys.iter() {
-        println!("{}", mon);
-    }
-
-    println!("");
 }
 
-fn calc_score(monkeys: &Vec<Monkey>) -> i64 {
+fn calc_score(monkeys: &Vec<Monkey>) -> u64 {
     let mut monkeys = monkeys.clone();
 
     monkeys.sort_by(|a, b| {
         let cm = b.inspect_count.cmp(&a.inspect_count);
 
         if cm == Ordering::Equal {
-            let asum: i64 = a.items.iter().sum();
-            let bsum: i64 = b.items.iter().sum();
+            let asum: u64 = a.items.iter().sum();
+            let bsum: u64 = b.items.iter().sum();
             return bsum.cmp(&asum);
         }
 
@@ -245,14 +251,10 @@ fn main() {
     let input = include_str!("input.txt");
     let mut monkeys = parse_input_to_monkeys(input);
 
-    for mon in monkeys.iter() {
-        println!("{}", mon);
-    }
-
-    println!("");
-
-    for _ in 0..ROUNDS {
-        simulate_round(&mut monkeys);
+    for _ in 0..10 {
+        for _ in 0..1000 {
+            simulate_round(&mut monkeys, 1);
+        }
     }
 
     let score = calc_score(&monkeys);
@@ -268,11 +270,32 @@ mod tests {
         let input = include_str!("test_input.txt");
         let mut monkeys = parse_input_to_monkeys(input);
 
-        for _ in 0..ROUNDS {
-            simulate_round(&mut monkeys);
+        for _ in 0..20 {
+            simulate_round(&mut monkeys, 3);
         }
     
         let res = calc_score(&monkeys);
         assert_eq!(10_605, res);
+    }
+
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        let mut monkeys = parse_input_to_monkeys(input);
+    
+        for _ in 0..10 {
+            for _ in 0..1000 {
+                simulate_round(&mut monkeys, 1);
+            }
+
+            for mon in monkeys.iter() {
+                println!("M{}: {:12}", mon.index, mon.inspect_count);
+            }
+
+            println!("");
+        }
+    
+        let score = calc_score(&monkeys);
+        println!("{}", score);
     }
 }
