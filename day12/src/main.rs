@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fmt::Display};
+use std::collections::VecDeque;
 
 // Fields are x and y
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -41,7 +41,38 @@ fn new_pos(x: usize, y: usize) -> Position {
     Position { x, y }
 }
 
-fn parse_input(input: &str) -> (Vec<Vec<u8>>, Position, Position) {
+enum StartEnd {
+    Both(Position, Position),
+    EndOnly(Position),
+}
+
+fn print_input<T>(map: &Vec<Vec<T>>, positions: StartEnd)
+where
+    T: Copy + From<u8> + PartialOrd + Into<i64>,
+{
+    match positions {
+        StartEnd::Both(start, end) => {
+            println!("start: {} {}\nend: {} {}", start.y, start.x, end.y, end.x);
+        }
+        StartEnd::EndOnly(end) => {
+            println!("end: {} {}", end.y, end.x);
+        }
+    }
+
+    for line in map.iter() {
+        for &pos in line {
+            let p: i64 = pos.into();
+            let p = if p > 300 { -1 } else { pos.into() }; 
+            print!("{:3} ", p);
+        }
+
+        println!("");
+    }
+
+    println!("");
+}
+
+fn parse_input(input: &str, include_start: bool) -> (Vec<Vec<u8>>, Position, Position) {
     let mut start = new_pos(0, 0);
     let mut end = new_pos(0, 0);
     let map = input
@@ -55,7 +86,12 @@ fn parse_input(input: &str) -> (Vec<Vec<u8>>, Position, Position) {
                     b'S' => {
                         start.x = x;
                         start.y = y;
-                        0
+                        
+                        if include_start {
+                            0
+                        } else {
+                            1
+                        }
                     }
                     b'E' => {
                         end.x = x;
@@ -92,22 +128,14 @@ fn bfs(map: &Vec<Vec<u8>>, start: &Position, end: &Position) -> Option<u32> {
         let cands_iter = cands.iter()
             .filter_map(|&pos| pos)
             .filter(|pos| (map[pos.y][pos.x] <= map[curr.y][curr.x] + 1));
+
         for cand in cands_iter {
             if dist_map[cand.y][cand.x] == u32::MAX || (dist_map[cand.y][cand.x] > dist_map[curr.y][curr.x] + 1) {
-                // let curr_c = (map[curr.y][curr.x] + b'a' - 1) as char;
-                // let cand_c = (map[cand.y][cand.x] + b'a' - 1) as char;
-                // println!("From {:2}, {:2} ({:1}) to {:2}, {:2} ({:1})", 
-                //     curr.y, curr.x, curr_c, cand.y, cand.x, cand_c);
-
                 open.push_back(cand);
                 dist_map[cand.y][cand.x] = dist_map[curr.y][curr.x] + 1;
             }
         }
-
-        print_input(&dist_map, &start, &end);
     }
-
-    print_input(&dist_map, &start, &end);
 
     if dist_map[end.y][end.x] != u32::MAX {
         Some(dist_map[end.y][end.x])
@@ -116,28 +144,60 @@ fn bfs(map: &Vec<Vec<u8>>, start: &Position, end: &Position) -> Option<u32> {
     }
 }
 
-fn print_input<T>(map: &Vec<Vec<T>>, start: &Position, end: &Position)
-where
-    T: Copy + From<u8> + PartialOrd + Into<i64>
-{
-    println!("start: {} {}\nend: {} {}", start.y, start.x, end.y, end.x);
-    for line in map.iter() {
-        for &pos in line {
-            let p: i64 = pos.into();
-            let p = if p > 300 { -1 } else { pos.into() }; 
-            print!("{:3} ", p);
-        }
-
-        println!("");
-    }
-
-    println!("");
+fn navigate(input: &str) -> u32 {
+    let (map, start, end) = parse_input(&input, true);
+    // print_input(&map, StartEnd::Both(start, end));
+    bfs(&map, &start, &end).unwrap()
 }
 
-fn navigate(input: &str) -> u32 {
-    let (map, start, end) = parse_input(&input);
-    print_input(&map, &start, &end);
-    bfs(&map, &start, &end).unwrap()
+fn bfs_from_any(map: &Vec<Vec<u8>>, end: &Position) -> Option<u32> {
+    let height = map.len();
+    let width = map[0].len();
+    
+    let mut dist_map = vec![vec![u32::MAX; width]; height];
+    let mut open: VecDeque<Position> = VecDeque::new();
+
+    for y in 0..height {
+        for x in 0..width {
+            if map[y][x] == 1 {
+                dist_map[y][x] = 0;
+                open.push_back(new_pos(x, y));
+            } 
+        }
+    }
+
+    while !open.is_empty() {
+        let curr = open.pop_front()?;
+
+        let cands = curr
+            .get_neighbours(&height, &width);
+        let cands_iter = cands.iter()
+            .filter_map(|&pos| pos)
+            .filter(|pos| (map[pos.y][pos.x] <= map[curr.y][curr.x] + 1));
+
+        for cand in cands_iter {
+            if dist_map[cand.y][cand.x] == u32::MAX || (dist_map[cand.y][cand.x] > dist_map[curr.y][curr.x] + 1) {
+                open.push_back(cand);
+                dist_map[cand.y][cand.x] = dist_map[curr.y][curr.x] + 1;
+            }
+        }
+
+        // print_input(&dist_map, StartEnd::EndOnly(*end));
+    }
+
+    // print_input(&dist_map, StartEnd::EndOnly(*end));
+
+    if dist_map[end.y][end.x] != u32::MAX {
+        Some(dist_map[end.y][end.x])
+    } else {
+        None
+    }
+}
+
+fn navigate_from_any(input: &str) -> u32 {
+    let (map, _, end) = parse_input(&input, false);
+    // print_input(&map, StartEnd::EndOnly(end));
+    bfs_from_any(&map, &end).unwrap()
 }
 
 fn main() {
@@ -145,6 +205,7 @@ fn main() {
     // y up as index goes up, so the y is in effect reversed
     let input = include_str!("input.txt");
     println!("{}", navigate(&input));
+    println!("{}", navigate_from_any(&input));
 }
 
 #[cfg(test)]
@@ -158,9 +219,10 @@ mod tests {
         assert_eq!(31, step_count);
     }
 
-    // #[test]
-    // fn test_second_half() {
-    //     let input = include_str!("test_input.txt");
-    //     todo!("Did not solve first half");
-    // }
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        let step_count = navigate_from_any(&input);
+        assert_eq!(29, step_count);
+    }
 }
