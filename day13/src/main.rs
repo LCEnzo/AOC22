@@ -140,17 +140,17 @@ fn calc_decoder_key(pairs: &Vec<Pair>) -> usize {
     let first_divider = Elem::List(vec![Elem::Num(2)]);
     let second_divider = Elem::List(vec![Elem::Num(6)]);
 
-    let mut bla: Vec<&Elem> = pairs
+    let mut list_of_signals: Vec<&Elem> = pairs
         .iter()
         .flat_map(|pair| [&pair.l1, &pair.l2])
         .collect();
 
-    bla.push(&first_divider);
-    bla.push(&second_divider);
+    list_of_signals.push(&first_divider);
+    list_of_signals.push(&second_divider);
 
-    bla.sort();
+    list_of_signals.sort();
 
-    bla.iter()
+    list_of_signals.iter()
         .enumerate()
         .filter(|(_, list)| **list == &first_divider || **list == &second_divider)
         .map(|(ind, _)| ind + 1)
