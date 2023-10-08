@@ -79,13 +79,13 @@ impl Elem {
         let trimmed = input.trim();
         let chars: Vec<_> = trimmed.chars().collect();
 
-        let (list, index) = Self::match_tokens(&chars);
+        let (list, _index) = Self::match_tokens(&chars);
 
-        println!("Parse list {} \n\t(len, end_index): ({}, {})", trimmed, chars.len(), index);
-        print!("\t");
-        list.print();
-        println!("");
-        assert_eq!(chars.len() - 1, index);
+        // println!("Parse list {} \n\t(len, end_index): ({}, {})", trimmed, chars.len(), _index);
+        // print!("\t");
+        // list.print();
+        // println!("");
+        // assert_eq!(chars.len() - 1, _index);
 
         Some(list)
     }
@@ -136,12 +136,36 @@ fn calc_target_sum(pairs: &Vec<Pair>) -> u32 {
         .sum()
 }
 
+fn calc_decoder_key(pairs: &Vec<Pair>) -> usize {
+    let first_divider = Elem::List(vec![Elem::Num(2)]);
+    let second_divider = Elem::List(vec![Elem::Num(6)]);
+
+    let mut bla: Vec<&Elem> = pairs
+        .iter()
+        .flat_map(|pair| [&pair.l1, &pair.l2])
+        .collect();
+
+    bla.push(&first_divider);
+    bla.push(&second_divider);
+
+    bla.sort();
+
+    bla.iter()
+        .enumerate()
+        .filter(|(_, list)| **list == &first_divider || **list == &second_divider)
+        .map(|(ind, _)| ind + 1)
+        .take(2)
+        .fold(1, |acc, x| acc * x)
+}
+
 fn main() {
     let input = include_str!("input.txt");
     let pairs: Vec<Pair> = parse_pairs(&input);
     let sum_of_right_ordered_pairs_indices = calc_target_sum(&pairs);
+    let decoder_key = calc_decoder_key(&pairs);
 
     println!("{}", sum_of_right_ordered_pairs_indices);
+    println!("decoder key: {}", decoder_key);
 }
 
 #[cfg(test)]
@@ -155,5 +179,14 @@ mod tests {
         let sum_of_right_ordered_pairs_indices = calc_target_sum(&pairs);
 
         assert_eq!(13, sum_of_right_ordered_pairs_indices);
+    }
+
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        let pairs: Vec<Pair> = parse_pairs(&input);
+        let decoder_key = calc_decoder_key(&pairs);
+
+        assert_eq!(140, decoder_key);
     }
 }
