@@ -29,19 +29,34 @@ impl Position {
     }
 
     fn can_move_down(&self, set: &HashSet<Self>) -> bool {
-        !set.contains(&Position { x: self.x - 1, y: self.y + 1 }) || 
-        !set.contains(&Position { x: self.x, y: self.y + 1 }) || 
-        !set.contains(&Position { x: self.x + 1, y: self.y + 1 })
+        !set.contains(&Position {
+            x: self.x - 1,
+            y: self.y + 1,
+        }) || !set.contains(&Position {
+            x: self.x,
+            y: self.y + 1,
+        }) || !set.contains(&Position {
+            x: self.x + 1,
+            y: self.y + 1,
+        })
     }
 
     fn move_down(&mut self, set: &HashSet<Self>) {
-        if !set.contains(&Position { x: self.x, y: self.y + 1 }) {
+        if !set.contains(&Position {
+            x: self.x,
+            y: self.y + 1,
+        }) {
             self.y += 1;
-        }
-        else if !set.contains(&Position { x: self.x - 1, y: self.y + 1 }) {
+        } else if !set.contains(&Position {
+            x: self.x - 1,
+            y: self.y + 1,
+        }) {
             self.x -= 1;
             self.y += 1;
-        } else if !set.contains(&Position { x: self.x + 1, y: self.y + 1 }) {
+        } else if !set.contains(&Position {
+            x: self.x + 1,
+            y: self.y + 1,
+        }) {
             self.x += 1;
             self.y += 1;
         }
@@ -84,11 +99,7 @@ fn parse_positions(input: &str) -> HashSet<Position> {
 }
 
 fn find_lowest_point(point_set: &HashSet<Position>) -> u32 {
-    point_set
-        .iter()
-        .map(|point| point.y)
-        .max()
-        .unwrap()
+    point_set.iter().map(|point| point.y).max().unwrap()
 }
 
 fn print_map(point_set: &HashSet<Position>, floor: Option<u32>) {
@@ -98,9 +109,8 @@ fn print_map(point_set: &HashSet<Position>, floor: Option<u32>) {
 
     if let Some(num) = floor {
         _floor = num;
-    }
-    else {
-        _floor = find_lowest_point(&point_set) + 2;
+    } else {
+        _floor = find_lowest_point(point_set) + 2;
     }
 
     for y in 0..=_floor {
@@ -119,25 +129,25 @@ fn print_map(point_set: &HashSet<Position>, floor: Option<u32>) {
             }
         }
 
-        println!("");
-    } 
+        println!();
+    }
 
-    println!("");
+    println!();
 }
 
 fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
-    let floor = find_lowest_point(&point_set);
+    let floor = find_lowest_point(point_set);
     let mut past_fell_into_abyss = false;
 
     dbg!(floor);
 
-    for count  in 0.. {
+    for count in 0.. {
         // Create new grain
-        let mut grain = SAND_ORIGIN.clone();
+        let mut grain = SAND_ORIGIN;
 
         // Let it fall
-        while grain.can_move_down(&point_set) && grain.y <= floor {
-            grain.move_down(&point_set);
+        while grain.can_move_down(point_set) && grain.y <= floor {
+            grain.move_down(point_set);
         }
 
         // Check if it's past the floor/it has gone into the abyss
@@ -161,17 +171,17 @@ fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
 }
 
 fn calc_sand_grain_count_until_filled(point_set: &HashSet<Position>) -> u32 {
-    let floor = find_lowest_point(&point_set) + 2;
+    let floor = find_lowest_point(point_set) + 2;
     let mut point_set = point_set.clone();
 
     dbg!(floor);
 
-    for count  in 1.. {
+    for count in 1.. {
         // Create new grain
-        let mut grain = SAND_ORIGIN.clone();
+        let mut grain = SAND_ORIGIN;
 
         // Let it fall
-        while grain.can_move_down(&point_set) && grain.y < floor - 1{
+        while grain.can_move_down(&point_set) && grain.y < floor - 1 {
             grain.move_down(&point_set);
         }
 
@@ -197,7 +207,10 @@ fn main() {
 
     print_map(&positions, None);
     println!("{}", calc_sand_grain_count(&mut positions.clone()));
-    println!("{}", calc_sand_grain_count_until_filled(&mut positions.clone()));
+    println!(
+        "{}",
+        calc_sand_grain_count_until_filled(&positions)
+    );
 }
 
 #[cfg(test)]
@@ -220,7 +233,7 @@ mod tests {
         let mut positions = parse_positions(input);
 
         print_map(&positions, None);
-        
+
         assert_eq!(93, calc_sand_grain_count_until_filled(&mut positions));
     }
 }
