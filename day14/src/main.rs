@@ -1,6 +1,6 @@
 use std::{
     cmp::{max, min},
-    collections::HashSet,
+    collections::{HashSet, vec_deque},
 };
 
 use itertools::Itertools;
@@ -173,16 +173,21 @@ fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
 fn calc_sand_grain_count_until_filled(point_set: &HashSet<Position>) -> u32 {
     let floor = find_lowest_point(point_set) + 2;
     let mut point_set = point_set.clone();
+    // A stack to contain the path of the previous grain of sand to fall
+    // It's used so we don't need to recompute the path for each grain to fall
+    let mut prev_path = vec_deque::VecDeque::new();
+    prev_path.push_front(SAND_ORIGIN);
 
     dbg!(floor);
 
     for count in 1.. {
         // Create new grain
-        let mut grain = SAND_ORIGIN;
+        let mut grain = prev_path.front().unwrap().clone();
 
         // Let it fall
         while grain.can_move_down(&point_set) && grain.y < floor - 1 {
             grain.move_down(&point_set);
+            prev_path.push_front(grain.clone());
         }
 
         // If it, and the previous grain fell, it means we achieved a loop
@@ -192,6 +197,7 @@ fn calc_sand_grain_count_until_filled(point_set: &HashSet<Position>) -> u32 {
         }
 
         point_set.insert(grain);
+        prev_path.pop_front();
 
         if count % 1000 == 999 {
             dbg!(count);
