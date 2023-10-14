@@ -91,17 +91,26 @@ fn find_lowest_point(point_set: &HashSet<Position>) -> u32 {
         .unwrap()
 }
 
-fn print_map(point_set: &HashSet<Position>) {
-    let floor = find_lowest_point(&point_set) + 1;
+fn print_map(point_set: &HashSet<Position>, floor: Option<u32>) {
     let left_bound = point_set.iter().map(|point| point.x).min().unwrap() - 1;
     let right_bound = point_set.iter().map(|point| point.x).max().unwrap() + 1;
+    let _floor;
 
-    for y in 0..=floor {
+    if let Some(num) = floor {
+        _floor = num;
+    }
+    else {
+        _floor = find_lowest_point(&point_set) + 2;
+    }
+
+    for y in 0..=_floor {
         print!("{:3}: ", y);
         for x in left_bound..=right_bound {
             let pos = new_pos(x, y);
 
-            if point_set.contains(&pos) {
+            if y == _floor {
+                print!("-");
+            } else if point_set.contains(&pos) {
                 print!("#");
             } else if x == 500 && y == 0 {
                 print!("*");
@@ -119,6 +128,7 @@ fn print_map(point_set: &HashSet<Position>) {
 fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
     let floor = find_lowest_point(&point_set);
     let mut past_fell_into_abyss = false;
+
     dbg!(floor);
 
     for count  in 0.. {
@@ -135,7 +145,7 @@ fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
 
         // If it, and the previous grain fell, it means we achieved a loop
         if past_fell_into_abyss && fell_into_abyss {
-            print_map(point_set);
+            print_map(point_set, None);
             return count - 1;
         }
 
@@ -145,9 +155,36 @@ fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
         if count % 1000 == 999 {
             dbg!(count);
         }
+    }
 
-        if count > 10_000 {
-            panic!("");
+    0
+}
+
+fn calc_sand_grain_count_until_filled(point_set: &HashSet<Position>) -> u32 {
+    let floor = find_lowest_point(&point_set) + 2;
+    let mut point_set = point_set.clone();
+
+    dbg!(floor);
+
+    for count  in 1.. {
+        // Create new grain
+        let mut grain = SAND_ORIGIN.clone();
+
+        // Let it fall
+        while grain.can_move_down(&point_set) && grain.y < floor - 1{
+            grain.move_down(&point_set);
+        }
+
+        // If it, and the previous grain fell, it means we achieved a loop
+        if grain == SAND_ORIGIN {
+            print_map(&point_set, Some(floor));
+            return count;
+        }
+
+        point_set.insert(grain);
+
+        if count % 1000 == 999 {
+            dbg!(count);
         }
     }
 
@@ -156,9 +193,11 @@ fn calc_sand_grain_count(point_set: &mut HashSet<Position>) -> u32 {
 
 fn main() {
     let input = include_str!("input.txt");
-    let mut positions = parse_positions(input);
-    print_map(&positions);
-    println!("{}", calc_sand_grain_count(&mut positions));
+    let positions = parse_positions(input);
+
+    print_map(&positions, None);
+    println!("{}", calc_sand_grain_count(&mut positions.clone()));
+    println!("{}", calc_sand_grain_count_until_filled(&mut positions.clone()));
 }
 
 #[cfg(test)]
@@ -169,7 +208,19 @@ mod tests {
     fn test_first_half() {
         let input = include_str!("test_input.txt");
         let mut positions = parse_positions(input);
-        print_map(&positions);
+
+        print_map(&positions, None);
+
         assert_eq!(24, calc_sand_grain_count(&mut positions));
+    }
+
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        let mut positions = parse_positions(input);
+
+        print_map(&positions, None);
+        
+        assert_eq!(93, calc_sand_grain_count_until_filled(&mut positions));
     }
 }
