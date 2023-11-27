@@ -13,6 +13,12 @@ struct Sensor {
     beacon: Position,
 }
 
+impl Sensor {
+    fn dist(self) -> i64 {
+        (self.self_pos.x - self.beacon.x).abs() + (self.self_pos.y - self.beacon.y).abs()
+    }
+}
+
 fn parse_sensors(input: &str) -> Vec<Sensor> {
     input
         .lines()
@@ -62,8 +68,8 @@ fn get_minmax_xy(sensors: &Vec<Sensor>) -> Option<(i64, i64, i64, i64)> {
     Some((minX, minY, maxX, maxY))
 }
 
-fn print_map(sensors: &Vec<Sensor>) -> () {
-    let (minX, minY, maxX, maxY) = get_minmax_xy(sensors).unwrap();
+fn print_map(sensors: &Vec<Sensor>, filled: Option<&HashMap<(i64, i64), i64>>) -> () {
+    let (minX, minY, maxX, maxY) = (-10, -12, 30, 27);//get_minmax_xy(sensors).unwrap();
     let mut sensor_set = HashSet::new();
     let mut beacons = HashSet::new();
 
@@ -94,6 +100,12 @@ fn print_map(sensors: &Vec<Sensor>) -> () {
                 print!("S")
             } else if beacons.contains(&(x, y)) {
                 print!("B")
+            } else if let Some(ref occupied) = filled {
+                if occupied.contains_key(&(x, y)) {
+                    print!("#")
+                } else {
+                    print!(".")
+                }
             } else {
                 print!(".")
             }
@@ -103,6 +115,7 @@ fn print_map(sensors: &Vec<Sensor>) -> () {
     }
 }
 
+// Too slow for actual solution, and can cause stack overflows. Used to create testcases and paint a filled map based on test input given.
 fn flood_fill(orig_x: i64, orig_y: i64, dist_left: i64, occupied: &mut HashMap<(i64, i64), i64>) -> () {
     if dist_left < 0 {
         return;
@@ -124,102 +137,83 @@ fn flood_fill(orig_x: i64, orig_y: i64, dist_left: i64, occupied: &mut HashMap<(
     }
 }
 
-fn flood_fill_iterative(orig_x: i64, orig_y: i64, start_dist: i64, occupied: &mut HashMap<(i64, i64), i64>) -> () {
-    let mut candidate_moves = VecDeque::new();
-    let diffs = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-
-    candidate_moves.push_back((orig_x, orig_y, start_dist));
-
-    print!("{} {} - {} => ", orig_x, orig_y, start_dist);
-
-    let mut counter = 0;
-    loop {
-        // Stop search if there are no more candidates for moves 
-        let op = candidate_moves.pop_front();
-        if op.is_none() {
-            break
-        }
-
-        // Skip candidate if it's farther than permissable
-        let (x, y, dist) = op.unwrap();
-        if dist < 0 {
-            continue
-        }
-
-        let existing = occupied.get(&(x, y));
-        // Only note the position if it's no already filled, or we can travel farther (we have larger dist)
-        if existing.is_none() || (*existing.unwrap() < dist) {
-            occupied.insert((x, y), dist);
-            counter += 1;
-
-            for (x_diff, y_diff) in diffs {
-                candidate_moves.push_back((x_diff + x, y_diff + y, dist - 1));
-            }
-        }
-    }
-
-    print!("{} | end loop\n", counter);
-}
-
-fn calc_solution_1(sensors: &Vec<Sensor>, target_row: i64) -> u32 {
+// Function for creating and printing a filled map
+fn make_print_map(sensors: &Vec<Sensor>) {
     let (mut minX, mut minY, mut maxX, mut maxY) = get_minmax_xy(sensors).unwrap();
     let mut positions: HashMap<(i64, i64), i64> = HashMap::new();
-    let mut beacons = HashSet::new();
+    // a unknown sensor can't be on a place occupied by a known beacon or sensor
+    let mut occupied = HashSet::new();
 
     for sensor in sensors {
-        let dist = (sensor.self_pos.x - sensor.beacon.x).abs()
-            + (sensor.self_pos.y - sensor.beacon.y).abs();
+        let dist = sensor.dist();
 
-        beacons.insert((sensor.beacon.x, sensor.beacon.y));
+        occupied.insert((sensor.beacon.x, sensor.beacon.y));
+        occupied.insert((sensor.self_pos.x, sensor.self_pos.y));
 
         minX = min(sensor.self_pos.x - dist, minX);
         maxX = max(sensor.self_pos.x + dist, maxX);
         minY = min(sensor.self_pos.y - dist, minY);
         maxY = max(sensor.self_pos.y + dist, maxY);
 
-        flood_fill_iterative(sensor.self_pos.x, sensor.self_pos.y, dist, &mut positions);
-
-        // for i in 0..=dist {
-        //     for j in 0..=(dist - i) {
-        //         positions.insert((sensor.self_pos.x + i, sensor.self_pos.y + j));
-        //         positions.insert((sensor.self_pos.x + i, sensor.self_pos.y - j));
-        //         positions.insert((sensor.self_pos.x - i, sensor.self_pos.y + j));
-        //         positions.insert((sensor.self_pos.x - i, sensor.self_pos.y - j));
-        //     }
-        // }
+        flood_fill(sensor.self_pos.x, sensor.self_pos.y, dist, &mut positions);
     }
 
-    // print!("\n");
-    // // positions.keys().into_iter().map(|el| el.clone()).collect::<Vec<(i64, i64)>>()
+    print_map(&sensors, Some(&positions));
 
-    // println!("minmax X: {}, {}", minX, maxX);
-    // println!("res: {}", (minX..=maxX).into_iter().filter(|x| positions.contains_key(&(*x, target_row))).count());
+    for y in minY..=maxY {
+        let count = (minX..=maxX)
+            .into_iter()
+            .filter(|x| positions.get(&(*x, y)).is_some())
+            .filter(|x| !occupied.contains(&(*x, y)))
+            .count() as u32;
 
-    // for y in minY..=maxY {
-    //     println!("Y: {} -> count: {}", y, (minX..=maxX).into_iter().filter(|x| positions.contains_key(&(*x, y))).count())
-    // }
+        // print!("{}: {}\n", y, count);
+        // Useful for making tests for faster or partial algos
+        print!("assert_eq!({}, calc_solution_1(&sensors, {}));\n", count, y);
+    } 
+    
+    print!("\n");
+}
 
-    // let min = (minX..=maxX).into_iter().filter(|x| positions.contains_key(&(*x, target_row))).min().unwrap();
-    // let max = (minX..=maxX).into_iter().filter(|x| positions.contains_key(&(*x, target_row))).max().unwrap();
-    // print!("min {} max {}\n", min, max);
+// Actual solution logic, fast enough
+fn calc_solution_1(sensors: &Vec<Sensor>, target_row: i64) -> u32 {
+    let mut positions: HashSet<(i64, i64)> = HashSet::new();
+    // a unknown sensor can't be on a place occupied by a known beacon or sensor
+    let mut occupied = HashSet::new();
 
-    (minX..=maxX)
-        .into_iter()
-        .filter(|x| positions.get(&(*x, target_row)).is_some())
-        .filter(|x| !beacons.contains(&(*x, target_row)))
+    for sensor in sensors {
+        let dist = sensor.dist();
+
+        occupied.insert((sensor.beacon.x, sensor.beacon.y));
+        occupied.insert((sensor.self_pos.x, sensor.self_pos.y));
+
+        let y_dist = (sensor.self_pos.y - target_row).abs();
+        if y_dist > dist {
+            continue
+        }
+
+        // This is not optimal, there are better, more efficient, algos for finding unions of ranges
+        let x_diff = dist - y_dist;
+        for x in (sensor.self_pos.x - x_diff)..=(sensor.self_pos.x + x_diff) {
+            positions.insert((x, target_row));
+        }
+    }
+
+    positions
+        .iter()
+        .filter(|(x, y)| !occupied.contains(&(*x, *y)))
         .count() as u32
 }
 
 fn main() {
+    // Used to create test cases
+    // let input = include_str!("test_input.txt");
+    // let sensors = parse_sensors(input);
+    // make_print_map(&sensors);
+
     let input = include_str!("input.txt");
     let sensors = parse_sensors(input);
-
-    // print_map(&sensors);
-    println!("{}", calc_solution_1(&sensors, 10_000));
-    // println!(
-    //     "{}",
-    //     calc_sand_grain_count_until_filled(&positions)
-    // );
+    println!("{}", calc_solution_1(&sensors, 2_000_000));
 }
 
 #[cfg(test)]
@@ -231,18 +225,42 @@ mod tests {
         let input = include_str!("test_input.txt");
         let sensors = parse_sensors(input);
 
-        // print_map(&sensors);
-
+        assert_eq!(1, calc_solution_1(&sensors, -10));
+        assert_eq!(3, calc_solution_1(&sensors, -9));
+        assert_eq!(5, calc_solution_1(&sensors, -8));
+        assert_eq!(7, calc_solution_1(&sensors, -7));
+        assert_eq!(10, calc_solution_1(&sensors, -6));
+        assert_eq!(14, calc_solution_1(&sensors, -5));
+        assert_eq!(18, calc_solution_1(&sensors, -4));
+        assert_eq!(22, calc_solution_1(&sensors, -3));
+        assert_eq!(26, calc_solution_1(&sensors, -2));
+        assert_eq!(31, calc_solution_1(&sensors, -1));
+        assert_eq!(34, calc_solution_1(&sensors, 0));
+        assert_eq!(34, calc_solution_1(&sensors, 1));
+        assert_eq!(32, calc_solution_1(&sensors, 2));
+        assert_eq!(29, calc_solution_1(&sensors, 3));
+        assert_eq!(29, calc_solution_1(&sensors, 4));
+        assert_eq!(27, calc_solution_1(&sensors, 5));
+        assert_eq!(25, calc_solution_1(&sensors, 6));
+        assert_eq!(21, calc_solution_1(&sensors, 7));
+        assert_eq!(23, calc_solution_1(&sensors, 8));
+        assert_eq!(25, calc_solution_1(&sensors, 9));
         assert_eq!(26, calc_solution_1(&sensors, 10));
+        assert_eq!(27, calc_solution_1(&sensors, 11));
+        assert_eq!(29, calc_solution_1(&sensors, 12));
+        assert_eq!(29, calc_solution_1(&sensors, 13));
+        assert_eq!(28, calc_solution_1(&sensors, 14));
+        assert_eq!(29, calc_solution_1(&sensors, 15));
+        assert_eq!(28, calc_solution_1(&sensors, 16));
+        assert_eq!(28, calc_solution_1(&sensors, 17));
+        assert_eq!(29, calc_solution_1(&sensors, 18));
+        assert_eq!(28, calc_solution_1(&sensors, 19));
+        assert_eq!(25, calc_solution_1(&sensors, 20));
+        assert_eq!(25, calc_solution_1(&sensors, 21));
+        assert_eq!(20, calc_solution_1(&sensors, 22));
+        assert_eq!(15, calc_solution_1(&sensors, 23));
+        assert_eq!(9, calc_solution_1(&sensors, 24));
+        assert_eq!(4, calc_solution_1(&sensors, 25));
+        assert_eq!(1, calc_solution_1(&sensors, 26));
     }
-
-    // #[test]
-    // fn test_second_half() {
-    //     let input = include_str!("test_input.txt");
-    //     let mut positions = parse_positions(input);
-
-    //     print_map(&positions, None);
-
-    //     assert_eq!(93, calc_sand_grain_count_until_filled(&mut positions));
-    // }
 }
