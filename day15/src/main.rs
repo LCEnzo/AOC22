@@ -205,6 +205,138 @@ fn calc_solution_1(sensors: &Vec<Sensor>, target_row: i64) -> u32 {
         .count() as u32
 }
 
+fn min_index<T: Ord + Clone>(v: &Vec<T>) -> Option<usize> {
+    if v.is_empty() {
+        None
+    } else {
+        let mut min_ind = 0;
+        let mut min = v[0].clone();
+
+        for (index, val) in v.iter().enumerate() {
+            if *val < min {
+                min = val.clone();
+                min_ind = index;
+            }
+        }
+
+        Some(min_ind)
+    }
+}
+
+fn calc_solution_2(sensors: &Vec<Sensor>, square_bound: usize) -> Option<i128> {
+    let mut y: i128 = -1;
+    let mut x: i128 = -1;
+
+    for i in 0..=square_bound {
+        // Crate ranges (x min, x max) for a given sensor and row
+        // The range includes all elements that are filled/sensed by a given sensor
+        let mut ranges: Vec<_> = sensors.iter()
+            .map(|s| (s.self_pos.x, s.self_pos.y, s.dist()))
+            .filter_map(|(x, y, dist)| {
+                let x_dist = (x - i as i64).abs();
+
+                if x_dist > dist {
+                    None
+                } else {
+                    let y_diff = dist - x_dist;
+                    Some((max(y - y_diff, 0), min(y + y_diff, square_bound as i64)))
+                }
+            }).collect();
+
+        ranges.sort();
+        // ranges.sort_by(|a, b| a.0.cmp(&b.0));
+
+        // Fix this:
+        // - l: 0, r: 4
+        // - l: 0, r: 16
+        // - l: 14, r: 14
+        // - l: 16, r: 16
+        // - l: 17, r: 19
+        // - l: 18, r: 20
+
+        // println!("\nranges on i = {}: ", i);
+        // for (left, right) in ranges.clone() {
+        //     print!(" - l: {}, r: {}\n", left, right);
+        // }
+        // println!("");
+
+        let mut start = ranges[0].0;
+        let mut end = ranges[0].1;
+
+        let mut candidates: Vec<_> = vec![];
+        for i in 1..(ranges.len()) {
+            if end >= ranges[i].0 - 1 {
+                end = max(end, ranges[i].1)
+            } else {
+                candidates.push((end, ranges[i].0));
+                end = ranges[i].0;
+            }
+        }
+
+        // println!("candidates on i = {}: ", i);
+        // for (left, right) in candidates.clone() {
+        //     print!(" - l: {}, r: {}\n", left, right);
+        // }
+        // println!("");
+
+        if start > 1 {
+            println!("Fuck, problem, start > 1, start: {}, end: {}", start, end)
+        } else if start > 0 {
+            y = start as i128;
+            x = i as i128;
+            print!("Got (i, y): {}, {}\n", x, y);
+            break;
+        } else if end < (square_bound - 1) as i64 {
+            println!("Fuck, problem, end < square_bound - 1, start: {}, end: {}", start, end)
+        } else if end < square_bound as i64 {
+            y = end as i128;
+            x = i as i128;
+            print!("Got (i, y): {}, {}\n", x, y);
+            break;
+        } else {
+            // Take first n - 1 ranges
+            // let candidates: Vec<_> = ranges.iter().take(ranges.len() - 1)
+            //     .zip(ranges.iter().skip(1)) // zip with last n - 1 (so first and second, second and third, ...)
+            //     .filter_map(|(r1, r2)| {
+            //         // We don't care about overlapping ranges, or those that touch
+            //         if r1.1 >= r2.0 - 1 {
+            //             None
+            //         } 
+            //         // only about disjoint, since we know only 1 should exist. Should still check. Otherwise, can just return r1.1
+            //         else {
+            //             Some((r1.1, r2.0))
+            //         }
+            //     })
+            //     .collect();
+            
+            if candidates.len() > 1 {
+                println!("LMAO got multiple disjoint ranges for i: {}", i);
+                for (left, right) in candidates {
+                    println!("\t{}, {}", left, right);
+                }
+            } else if candidates.len() == 1 {
+                let (left, right) = candidates[0];
+
+                if left != right - 2 {
+                    println!("Area between disjoint ranges is too large, edges: {}, {}", left, right);
+                } else {
+                    y = (left + 1) as i128;
+                    x = i as i128;
+                    print!("Got (i, y): {}, {}\n", x, y);
+                    break;
+                }
+            } 
+        }
+    }
+
+    if y != -1 {
+        Some(x * 4_000_000 + y)
+    } 
+    else {
+        None
+    }
+}
+
 fn main() {
     // Used to create test cases
     // let input = include_str!("test_input.txt");
@@ -214,6 +346,7 @@ fn main() {
     let input = include_str!("input.txt");
     let sensors = parse_sensors(input);
     println!("{}", calc_solution_1(&sensors, 2_000_000));
+    println!("{}", calc_solution_2(&sensors, 4_000_000).unwrap());
 }
 
 #[cfg(test)]
@@ -262,5 +395,13 @@ mod tests {
         assert_eq!(9, calc_solution_1(&sensors, 24));
         assert_eq!(4, calc_solution_1(&sensors, 25));
         assert_eq!(1, calc_solution_1(&sensors, 26));
+    }
+
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        let sensors = parse_sensors(input);
+
+        assert_eq!(56000011, calc_solution_2(&sensors, 20).unwrap());
     }
 }
