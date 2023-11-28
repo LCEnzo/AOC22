@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::collections::{HashSet, HashMap, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
 struct Position {
@@ -69,7 +69,7 @@ fn get_minmax_xy(sensors: &Vec<Sensor>) -> Option<(i64, i64, i64, i64)> {
 }
 
 fn print_map(sensors: &Vec<Sensor>, filled: Option<&HashMap<(i64, i64), i64>>) -> () {
-    let (minX, minY, maxX, maxY) = (-10, -12, 30, 27);//get_minmax_xy(sensors).unwrap();
+    let (minX, minY, maxX, maxY) = (-10, -12, 30, 27); //get_minmax_xy(sensors).unwrap();
     let mut sensor_set = HashSet::new();
     let mut beacons = HashSet::new();
 
@@ -116,7 +116,12 @@ fn print_map(sensors: &Vec<Sensor>, filled: Option<&HashMap<(i64, i64), i64>>) -
 }
 
 // Too slow for actual solution, and can cause stack overflows. Used to create testcases and paint a filled map based on test input given.
-fn flood_fill(orig_x: i64, orig_y: i64, dist_left: i64, occupied: &mut HashMap<(i64, i64), i64>) -> () {
+fn flood_fill(
+    orig_x: i64,
+    orig_y: i64,
+    dist_left: i64,
+    occupied: &mut HashMap<(i64, i64), i64>,
+) -> () {
     if dist_left < 0 {
         return;
     }
@@ -170,8 +175,8 @@ fn make_print_map(sensors: &Vec<Sensor>) {
         // print!("{}: {}\n", y, count);
         // Useful for making tests for faster or partial algos
         print!("assert_eq!({}, calc_solution_1(&sensors, {}));\n", count, y);
-    } 
-    
+    }
+
     print!("\n");
 }
 
@@ -189,7 +194,7 @@ fn calc_solution_1(sensors: &Vec<Sensor>, target_row: i64) -> u32 {
 
         let y_dist = (sensor.self_pos.y - target_row).abs();
         if y_dist > dist {
-            continue
+            continue;
         }
 
         // This is not optimal, there are better, more efficient, algos for finding unions of ranges
@@ -230,7 +235,8 @@ fn calc_solution_2(sensors: &Vec<Sensor>, square_bound: usize) -> Option<i128> {
     for i in 0..=square_bound {
         // Crate ranges (x min, x max) for a given sensor and row
         // The range includes all elements that are filled/sensed by a given sensor
-        let mut ranges: Vec<_> = sensors.iter()
+        let mut ranges: Vec<_> = sensors
+            .iter()
             .map(|s| (s.self_pos.x, s.self_pos.y, s.dist()))
             .filter_map(|(x, y, dist)| {
                 let x_dist = (x - i as i64).abs();
@@ -241,7 +247,8 @@ fn calc_solution_2(sensors: &Vec<Sensor>, square_bound: usize) -> Option<i128> {
                     let y_diff = dist - x_dist;
                     Some((max(y - y_diff, 0), min(y + y_diff, square_bound as i64)))
                 }
-            }).collect();
+            })
+            .collect();
 
         ranges.sort();
         // ranges.sort_by(|a, b| a.0.cmp(&b.0));
@@ -287,28 +294,16 @@ fn calc_solution_2(sensors: &Vec<Sensor>, square_bound: usize) -> Option<i128> {
             print!("Got (i, y): {}, {}\n", x, y);
             break;
         } else if end < (square_bound - 1) as i64 {
-            println!("Fuck, problem, end < square_bound - 1, start: {}, end: {}", start, end)
+            println!(
+                "Fuck, problem, end < square_bound - 1, start: {}, end: {}",
+                start, end
+            )
         } else if end < square_bound as i64 {
             y = end as i128;
             x = i as i128;
             print!("Got (i, y): {}, {}\n", x, y);
             break;
         } else {
-            // Take first n - 1 ranges
-            // let candidates: Vec<_> = ranges.iter().take(ranges.len() - 1)
-            //     .zip(ranges.iter().skip(1)) // zip with last n - 1 (so first and second, second and third, ...)
-            //     .filter_map(|(r1, r2)| {
-            //         // We don't care about overlapping ranges, or those that touch
-            //         if r1.1 >= r2.0 - 1 {
-            //             None
-            //         } 
-            //         // only about disjoint, since we know only 1 should exist. Should still check. Otherwise, can just return r1.1
-            //         else {
-            //             Some((r1.1, r2.0))
-            //         }
-            //     })
-            //     .collect();
-            
             if candidates.len() > 1 {
                 println!("LMAO got multiple disjoint ranges for i: {}", i);
                 for (left, right) in candidates {
@@ -318,21 +313,23 @@ fn calc_solution_2(sensors: &Vec<Sensor>, square_bound: usize) -> Option<i128> {
                 let (left, right) = candidates[0];
 
                 if left != right - 2 {
-                    println!("Area between disjoint ranges is too large, edges: {}, {}", left, right);
+                    println!(
+                        "Area between disjoint ranges is too large, edges: {}, {}",
+                        left, right
+                    );
                 } else {
                     y = (left + 1) as i128;
                     x = i as i128;
                     print!("Got (i, y): {}, {}\n", x, y);
                     break;
                 }
-            } 
+            }
         }
     }
 
     if y != -1 {
         Some(x * 4_000_000 + y)
-    } 
-    else {
+    } else {
         None
     }
 }
