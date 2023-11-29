@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
+use std::time::Instant;
 
 #[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
 struct Position {
@@ -341,9 +342,21 @@ fn main() {
     // make_print_map(&sensors);
 
     let input = include_str!("input.txt");
+
+    let start = Instant::now();
     let sensors = parse_sensors(input);
+    let elapsed = start.elapsed();
+    println!("Parsing took: {}s, {}ms", elapsed.as_secs(), elapsed.as_millis());
+
+    let start = Instant::now();
     println!("{}", calc_solution_1(&sensors, 2_000_000));
+    let elapsed = start.elapsed();
+    println!("1 took: {}s, {}ms", elapsed.as_secs(), elapsed.as_millis());
+    
+    let start = Instant::now();
     println!("{}", calc_solution_2(&sensors, 4_000_000).unwrap());
+    let elapsed = start.elapsed();
+    println!("2 took: {}s, {}ms", elapsed.as_secs(), elapsed.as_millis());
 }
 
 #[cfg(test)]
