@@ -1,4 +1,4 @@
-Solutions to AOC22 made to learn Rust.
+Solutions to Advent of Code, initially done to learn Rust.
 
 https://adventofcode.com/2022
 
