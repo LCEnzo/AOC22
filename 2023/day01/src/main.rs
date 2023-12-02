@@ -24,48 +24,22 @@ fn pad_out_and_convert_line(line: &[u8]) -> u8x64 {
 }
 
 fn convert_char_digits_to_uint(simd_value: u8x64) -> u8x64 {
-    // TODO: Find a way to have these as constants or w/e
+    // Allocating these statically does not seem to change performance. 
+    // Next step would be to check compiler output with this, and when using lazy static
     let ZERO_ASCII: Simd<u8, 64> = u8x64::splat(b'0');
     let NINE: Simd<u8, 64> = u8x64::splat(9);
     let NULL: Simd<u8, 64> = u8x64::splat(u8::MAX);
 
-    // print!("\n\t -- orig: [");
-    // for val in simd_value.as_array() {
-    //     print!("{}, ", val);
-    // }
-    // print!("]\n\t -- vals: [");
-
     let val = simd_value - ZERO_ASCII;
     let mask = val.simd_gt(NINE);
 
-    // for val in val.as_array() {
-    //     print!("{}, ", val);
-    // }
-    // print!("]\n\t -- rets: [");
-
-    let res = mask.select(NULL, val);
-
-    // for val in res.as_array() {
-    //     print!("{}, ", val);
-    // }
-    // print!("]\n\t == ");
-
-    // for val in res.as_array() {
-    //     if *val < 10 {
-    //         print!("{}, ", val);
-    //     }
-    // }
-
-    // print!("\n");
-
-    res
+    mask.select(NULL, val)
 }
 
 fn vec_to_num(simd_val: u8x64) -> u32 {
     let mut iter = simd_val.as_array().iter().filter(|el| **el < 10);
-    let mut iter2 = iter.clone().rev();
     let first = iter.next().unwrap();
-    let last = iter2.next().unwrap();
+    let last = if let Some(num) = iter.next() { num } else { first };
 
     10u32 * *first as u32 + *last as u32
 }
@@ -73,7 +47,7 @@ fn vec_to_num(simd_val: u8x64) -> u32 {
 fn calc_solution_1(input: &str) -> u32 {
     input
         .par_lines()
-        .map(|line| pad_out_and_convert_line(line.to_ascii_lowercase().as_bytes()))
+        .map(|line| pad_out_and_convert_line(line.as_bytes()))
         .map(|bytes| convert_char_digits_to_uint(bytes))
         .map(|bytes| vec_to_num(bytes))
         .sum()
@@ -86,31 +60,22 @@ fn digest_line(line: &str) -> u64 {
     let mut digits = vec![];
 
     'outer: while index < line.len() {
-        // if index < line.len() {
-        //     println!("index: {}; line[index:]: {}", index, line.get(index..).unwrap());
-        // }
-        
         for (s_index, s) in digit_strs.iter().enumerate() {
             let l = s.len();
             if index+l <= line.len() && **s == line[index..(index+l)] {
                 digits.push(s_index as u64 % 10);
-                index += 1; // l; // Wow, it's pretty meh to have overlapping digit strings. Dislike
-                continue 'outer;
+                break;
+                // index += 1; // l; // Wow, it's pretty meh to have overlapping digit strings. Dislike
+                // continue 'outer;
             }
         }
 
         index += 1;
     }
 
-    // print!("digits: ");
-    // for digit in digits.clone() {
-    //     print!("{}, ", digit);
-    // } print!("\n");
 
     let first = digits.first().unwrap();
     let last = if digits.is_empty() { first } else { digits.last().unwrap() };
-
-    // print!("val: {}\n", first * 10 + last);
 
     first * 10 + last
 }
@@ -125,18 +90,19 @@ fn calc_solution_2(input: &str) -> u64 {
 fn main() {
     let input = include_str!("input.txt");
     // For performance testing
-    // let input = input.repeat(100);
-    // let input = input.as_str();
+    let repeat_amount = 100;
+    let input = input.repeat(repeat_amount);
+    let input = input.as_str();
 
     let start = Instant::now();
     let solution = calc_solution_1(input);
     let elapsed = start.elapsed();
-    println!("1 took: {}s {}ms {}μs\nSolution:\n\t{}\n", elapsed.as_secs(), elapsed.subsec_millis(), elapsed.subsec_micros() % 1000, solution);
+    println!("1 took: {}s {}ms {}μs\nSolution:\n\t{}\n", elapsed.as_secs(), elapsed.subsec_millis(), elapsed.subsec_micros() % 1000, solution as u64 / repeat_amount as u64);
 
     let start = Instant::now();
     let solution = calc_solution_2(input);
     let elapsed = start.elapsed();
-    println!("2 took: {}s {}ms {}μs\nSolution:\n\t{}\n", elapsed.as_secs(), elapsed.subsec_millis(), elapsed.subsec_micros() % 1000, solution);
+    println!("2 took: {}s {}ms {}μs\nSolution:\n\t{}\n", elapsed.as_secs(), elapsed.subsec_millis(), elapsed.subsec_micros() % 1000, solution / repeat_amount as u64);
 }
 
 #[cfg(test)]
