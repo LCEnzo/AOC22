@@ -123,6 +123,16 @@ fn main() {
         elapsed2.subsec_micros() % 1000,
         solution
     );
+
+    let start = Instant::now();
+    let _parsed_games = parse_input(input);
+    let elapsed3 = start.elapsed();
+    println!(
+        "Parsing took: {}s {}ms {}μs",
+        elapsed3.as_secs(),
+        elapsed3.subsec_millis(),
+        elapsed3.subsec_micros() % 1000
+    );
 }
 
 #[cfg(test)]
