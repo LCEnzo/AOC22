@@ -118,7 +118,32 @@ fn calc_solution_1(input: &str) -> i64 {
 }
 
 fn calc_solution_2(input: &str) -> i64 {
-    todo!()
+    // TODO: Speed up, this is MEGA GIGA ULTRA SLOW, takes like 280s to compute
+    let (seeds, maps) = parse_input(input).unwrap();
+
+    let mut result = i64::MAX;
+    let mut seeds_iter = seeds.iter();
+    loop{
+        let a = seeds_iter.next();
+        let b = seeds_iter.next();
+
+        if a.is_none() || b.is_none() {
+            return result;
+        }
+
+        let a = *a.unwrap();
+        let b = *b.unwrap();
+
+        for seed in a..(a + b) {
+            let mut acc = seed;
+            for map in maps.iter() {
+                acc = apply_map(acc, &map);
+                // println!("\t\t -> {}", acc);
+            }
+
+            result = std::cmp::min(result, acc);
+        }
+    }
 }
 
 fn main() {
@@ -135,16 +160,16 @@ fn main() {
         solution
     );
 
-    // let start = Instant::now();
-    // let solution = calc_solution_2(input);
-    // let elapsed2 = start.elapsed();
-    // println!(
-    //     "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
-    //     elapsed2.as_secs(),
-    //     elapsed2.subsec_millis(),
-    //     elapsed2.subsec_micros() % 1000,
-    //     solution / repeat_amount as i64
-    // );
+    let start = Instant::now();
+    let solution = calc_solution_2(input);
+    let elapsed2 = start.elapsed();
+    println!(
+        "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
+        elapsed2.as_secs(),
+        elapsed2.subsec_millis(),
+        elapsed2.subsec_micros() % 1000,
+        solution
+    );
 }
 
 #[cfg(test)]
@@ -155,5 +180,11 @@ mod tests {
     fn test_first_half() {
         let input = include_str!("test_input.txt");
         assert_eq!(35, calc_solution_1(input));
+    }
+
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        assert_eq!(46, calc_solution_2(input));
     }
 }
