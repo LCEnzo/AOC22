@@ -3,9 +3,9 @@ use regex::Regex;
 use core::str::FromStr;
 
 struct Draw {
-    blue: u32,
+    red: u32,
     green: u32, 
-    red: u32
+    blue: u32,
 }
 
 struct Game {
@@ -25,14 +25,14 @@ impl FromStr for Draw {
         for cap in re.captures_iter(s) {
             let number: u32 = cap["number"].parse().unwrap_or(0);
             match &cap["color"] {
-                "blue" => blue = number,
-                "green" => green = number,
                 "red" => red = number,
+                "green" => green = number,
+                "blue" => blue = number,
                 _ => {}
             }
         }
 
-        Ok(Draw { blue, green, red })
+        Ok(Draw { red, green, blue })
     }
 }
 
@@ -66,6 +66,25 @@ impl Game {
     fn is_valid(&self, max_blue: u32, max_green: u32, max_red: u32) -> bool {
         self.draws.iter().all(|draw| draw.is_valid(max_blue, max_green, max_red))
     }
+
+    fn minimum_cubes(&self) -> Draw {
+        let mut red = 0;
+        let mut green = 0;
+        let mut blue = 0;
+
+        self.draws.iter().for_each(|draw| {
+            red = std::cmp::max(red, draw.red);
+            green = std::cmp::max(green, draw.green);
+            blue = std::cmp::max(blue, draw.blue);
+        });
+
+        Draw {red, green, blue}
+    }
+
+    fn power(&self) -> u32 {
+        let min = self.minimum_cubes();
+        min.red * min.green * min.blue
+    }
 }
 
 fn calc_solution_1_with_args(input: &str, max_blue: u32, max_green: u32, max_red: u32) -> u32 {
@@ -77,7 +96,7 @@ fn calc_solution_1(input: &str) -> u32 {
 }
 
 fn calc_solution_2(input: &str) -> u32 {
-    todo!()
+    parse_input(input).unwrap().iter().map(|game| game.power()).sum()
 }
 
 fn main() {
@@ -94,16 +113,16 @@ fn main() {
         solution
     );
 
-    // let start = Instant::now();
-    // let solution = calc_solution_2(input);
-    // let elapsed2 = start.elapsed();
-    // println!(
-    //     "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
-    //     elapsed2.as_secs(),
-    //     elapsed2.subsec_millis(),
-    //     elapsed2.subsec_micros() % 1000,
-    //     solution
-    // );
+    let start = Instant::now();
+    let solution = calc_solution_2(input);
+    let elapsed2 = start.elapsed();
+    println!(
+        "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
+        elapsed2.as_secs(),
+        elapsed2.subsec_millis(),
+        elapsed2.subsec_micros() % 1000,
+        solution
+    );
 }
 
 #[cfg(test)]
@@ -122,15 +141,15 @@ mod tests {
         assert_eq!(2239, calc_solution_1(input));
     }
 
-    // #[test]
-    // fn test_second_half() {
-    //     let input = include_str!("test_input.txt");
-    //     assert_eq!(2286, calc_solution_2(input));
-    // }
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        assert_eq!(2286, calc_solution_2(input));
+    }
 
-    // #[test]
-    // fn test_second_half_on_real_input() {
-    //     let input = include_str!("input.txt");
-    //     assert_eq!(0, calc_solution_2(input));
-    // }
+    #[test]
+    fn test_second_half_on_real_input() {
+        let input = include_str!("input.txt");
+        assert_eq!(83435, calc_solution_2(input));
+    }
 }
