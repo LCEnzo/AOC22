@@ -68,7 +68,6 @@ fn calc_solution_1(input: &str) -> u32 {
         for j in 0..mat[i].len() {
             if mat[i][j] != '.' && !mat[i][j].is_digit(10) {
                 let part_sum = get_sum_around_part(&mat, i, j);
-                // println!("Part sum, sum = {:5.0}, {:5.0}", part_sum, sum);
                 sum += part_sum;
             }
         }
@@ -77,8 +76,96 @@ fn calc_solution_1(input: &str) -> u32 {
     sum
 }
 
+fn get_gear_ratio(mat: &Vec<Vec<char>>, i: usize, j: usize) -> Option<u32> {
+    let mut part_prod = 1;
+    let mut num_count = 0;
+
+    if !(0..mat.len()).contains(&i) || !(0..mat[i].len()).contains(&j) || mat[i][j] != '*' {
+        return None;
+    }
+
+    // number that is left of the part at (i, j)
+    // Assumes underflow is filtered out via line bounds check
+    if let Some(num) = get_num(&mat[i], j - 1) {
+        num_count += 1;
+        if num_count > 2 {
+            return None;
+        }
+        part_prod *= num;
+    }
+    // number that is right of the part at (i, j)
+    // Assumes overflow won't happen since input has 140 chars per row
+    if let Some(num) = get_num(&mat[i], j + 1) {
+        num_count += 1;
+        if num_count > 2 {
+            return None;
+        }
+        part_prod *= num;
+    }
+
+    // positions/rows above and below part
+    for row_index in [i - 1, i + 1] {
+        if (0..mat.len()).contains(&row_index) {
+            if let Some(num) = get_num(&mat[row_index], j + 1) {
+                num_count += 1;
+                if num_count > 2 {
+                    return None;
+                }
+                part_prod *= num;
+            }
+
+            // if the top right has a digit, top middle must be part of the same number, so this checks for double counting
+            if j + 1 >= mat[i].len() || !mat[row_index][j + 1].is_digit(10) {
+                if let Some(num) = get_num(&mat[row_index], j) {
+                    num_count += 1;
+                    if num_count > 2 {
+                        return None;
+                    }
+                    part_prod *= num;
+                }
+            }
+
+            // same check as top middle
+            if !mat[row_index][j].is_digit(10) {
+                if let Some(num) = get_num(&mat[row_index], j - 1) {
+                    num_count += 1;
+                    if num_count > 2 {
+                        return None;
+                    }
+                    part_prod *= num;
+                }
+            }
+        }
+    }
+
+    if num_count == 2 {
+        Some(part_prod)
+    } else {
+        None
+    }
+}
+
 fn calc_solution_2(input: &str) -> u32 {
-    todo!()
+    let mat: Vec<Vec<_>> = input
+        .lines()
+        .map(|line| line.chars().collect::<Vec<_>>())
+        .collect();
+
+    let mut sum = 0;
+    for i in 0..mat.len() {
+        for j in 0..mat[i].len() {
+            if mat[i][j] != '.' && !mat[i][j].is_digit(10) {
+                let gear_ratio = get_gear_ratio(&mat, i, j);
+
+                if let Some(gear_ratio) = gear_ratio {
+                    // println!("Gear at ({:3}, {:3}) got ratio {}", i, j, gear_ratio);
+                    sum += gear_ratio;
+                }
+            }
+        }
+    }
+
+    sum
 }
 
 fn main() {
@@ -95,16 +182,16 @@ fn main() {
         solution
     );
 
-    // let start = Instant::now();
-    // let solution = calc_solution_2(input);
-    // let elapsed2 = start.elapsed();
-    // println!(
-    //     "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
-    //     elapsed2.as_secs(),
-    //     elapsed2.subsec_millis(),
-    //     elapsed2.subsec_micros() % 1000,
-    //     solution
-    // );
+    let start = Instant::now();
+    let solution = calc_solution_2(input);
+    let elapsed2 = start.elapsed();
+    println!(
+        "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
+        elapsed2.as_secs(),
+        elapsed2.subsec_millis(),
+        elapsed2.subsec_micros() % 1000,
+        solution
+    );
 }
 
 #[cfg(test)]
@@ -170,15 +257,15 @@ mod tests {
         assert_eq!(551094, calc_solution_1(input));
     }
 
-    // #[test]
-    // fn test_second_half() {
-    //     let input = include_str!("test_input.txt");
-    //     assert_eq!(2286, calc_solution_2(input));
-    // }
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        assert_eq!(467835, calc_solution_2(input));
+    }
 
-    // #[test]
-    // fn test_second_half_on_real_input() {
-    //     let input = include_str!("input.txt");
-    //     assert_eq!(420, calc_solution_2(input));
-    // }
+    #[test]
+    fn test_second_half_on_real_input() {
+        let input = include_str!("input.txt");
+        assert_eq!(80179647, calc_solution_2(input));
+    }
 }
