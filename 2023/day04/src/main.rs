@@ -55,7 +55,27 @@ fn calc_solution_1(input: &str) -> u32 {
 }
 
 fn calc_solution_2(input: &str) -> u32 {
-    todo!()
+    let cards = parse(input);
+    let mut card_counts = vec![1; cards.len()];
+
+    for (index, (winning_numbers, chosen_numbers)) in cards.iter().enumerate() {
+        let win_count = chosen_numbers
+            .iter()
+            .filter(|num| winning_numbers.contains(num))
+            .count();
+
+        let card_count = card_counts[index];
+
+        for count in card_counts
+            .iter_mut()
+            .take(index + win_count + 1)
+            .skip(index + 1)
+        {
+            *count += card_count;
+        }
+    }
+
+    card_counts.iter().sum()
 }
 
 fn main() {
@@ -72,16 +92,16 @@ fn main() {
         solution
     );
 
-    // let start = Instant::now();
-    // let solution = calc_solution_2(input);
-    // let elapsed2 = start.elapsed();
-    // println!(
-    //     "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
-    //     elapsed2.as_secs(),
-    //     elapsed2.subsec_millis(),
-    //     elapsed2.subsec_micros() % 1000,
-    //     solution
-    // );
+    let start = Instant::now();
+    let solution = calc_solution_2(input);
+    let elapsed2 = start.elapsed();
+    println!(
+        "2 took: {}s {}ms {}μs\nSolution:\n\t{}\n",
+        elapsed2.as_secs(),
+        elapsed2.subsec_millis(),
+        elapsed2.subsec_micros() % 1000,
+        solution
+    );
 }
 
 #[cfg(test)]
@@ -100,15 +120,15 @@ mod tests {
         assert_eq!(21821, calc_solution_1(input));
     }
 
-    // #[test]
-    // fn test_second_half() {
-    //     let input = include_str!("test_input.txt");
-    //     assert_eq!(467835, calc_solution_2(input));
-    // }
+    #[test]
+    fn test_second_half() {
+        let input = include_str!("test_input.txt");
+        assert_eq!(30, calc_solution_2(input));
+    }
 
-    // #[test]
-    // fn test_second_half_on_real_input() {
-    //     let input = include_str!("input.txt");
-    //     assert_eq!(80179647, calc_solution_2(input));
-    // }
+    #[test]
+    fn test_second_half_on_real_input() {
+        let input = include_str!("input.txt");
+        assert_eq!(5539496, calc_solution_2(input));
+    }
 }
