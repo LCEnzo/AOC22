@@ -39,9 +39,15 @@ impl Race {
     }
 
     fn count_ways_to_win(&self) -> u64 {
-        let left_bound = self.search_for_bound(true);
-        let right_bound = self.search_for_bound(false);
-        right_bound - left_bound + 1
+        // let left_bound = self.search_for_bound(true);
+        // let right_bound = self.search_for_bound(false);
+        // right_bound - left_bound + 1
+
+        let common = ((self.time.pow(2) - 4 * self.dist) as f64).sqrt();
+        let x1 = ((self.time as f64 - common) / 2_f64).floor() as u64;
+        let x2 = ((self.time as f64 + common) / 2_f64).ceil() as u64;
+
+        x2 - x1 - 1
     }
 }
 
