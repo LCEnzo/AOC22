@@ -4,12 +4,12 @@ use std::time::Instant;
 /// Based on this, it will try and calculate the number that has a digit on the given index.
 /// If no digit is found, it will return None.
 fn get_num(line: &Vec<char>, pos: usize) -> Option<u32> {
-    if !(0..line.len()).contains(&pos) || !line[pos].is_digit(10) {
+    if !(0..line.len()).contains(&pos) || !line[pos].is_ascii_digit() {
         return None;
     }
 
     let mut pos = pos;
-    while pos > 0 && line[pos - 1].is_digit(10) {
+    while pos > 0 && line[pos - 1].is_ascii_digit() {
         pos -= 1;
     }
 
@@ -43,12 +43,12 @@ fn get_sum_around_part(mat: &Vec<Vec<char>>, i: usize, j: usize) -> u32 {
             part_sum += get_num(&mat[row_index], j + 1).unwrap_or(0);
 
             // if the top right has a digit, top middle must be part of the same number, so this checks for double counting
-            if j + 1 >= mat[i].len() || !mat[row_index][j + 1].is_digit(10) {
+            if j + 1 >= mat[i].len() || !mat[row_index][j + 1].is_ascii_digit() {
                 part_sum += get_num(&mat[row_index], j).unwrap_or(0);
             }
 
             // same check as top middle
-            if !mat[row_index][j].is_digit(10) {
+            if !mat[row_index][j].is_ascii_digit() {
                 part_sum += get_num(&mat[row_index], j - 1).unwrap_or(0);
             }
         }
@@ -66,7 +66,7 @@ fn calc_solution_1(input: &str) -> u32 {
     let mut sum = 0;
     for i in 0..mat.len() {
         for j in 0..mat[i].len() {
-            if mat[i][j] != '.' && !mat[i][j].is_digit(10) {
+            if mat[i][j] != '.' && !mat[i][j].is_ascii_digit() {
                 let part_sum = get_sum_around_part(&mat, i, j);
                 sum += part_sum;
             }
@@ -115,7 +115,7 @@ fn get_gear_ratio(mat: &Vec<Vec<char>>, i: usize, j: usize) -> Option<u32> {
             }
 
             // if the top right has a digit, top middle must be part of the same number, so this checks for double counting
-            if j + 1 >= mat[i].len() || !mat[row_index][j + 1].is_digit(10) {
+            if j + 1 >= mat[i].len() || !mat[row_index][j + 1].is_ascii_digit() {
                 if let Some(num) = get_num(&mat[row_index], j) {
                     num_count += 1;
                     if num_count > 2 {
@@ -126,7 +126,7 @@ fn get_gear_ratio(mat: &Vec<Vec<char>>, i: usize, j: usize) -> Option<u32> {
             }
 
             // same check as top middle
-            if !mat[row_index][j].is_digit(10) {
+            if !mat[row_index][j].is_ascii_digit() {
                 if let Some(num) = get_num(&mat[row_index], j - 1) {
                     num_count += 1;
                     if num_count > 2 {
@@ -154,7 +154,7 @@ fn calc_solution_2(input: &str) -> u32 {
     let mut sum = 0;
     for i in 0..mat.len() {
         for j in 0..mat[i].len() {
-            if mat[i][j] != '.' && !mat[i][j].is_digit(10) {
+            if mat[i][j] != '.' && !mat[i][j].is_ascii_digit() {
                 let gear_ratio = get_gear_ratio(&mat, i, j);
 
                 if let Some(gear_ratio) = gear_ratio {
